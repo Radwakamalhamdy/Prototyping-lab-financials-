@@ -87,11 +87,11 @@ body {
 }
 
 .header-logo {
-  width: 72px;
-  height: 72px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  border: 3px solid rgba(255,255,255,0.4);
-  box-shadow: 0 0 20px rgba(255,255,255,0.15);
+  border: 3.5px solid rgba(255,255,255,0.45);
+  box-shadow: 0 0 25px rgba(255,255,255,0.22);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -389,24 +389,24 @@ body {
 /* ===== Section Watermark Behind Tables ===== */
 .section-watermark {
   position: absolute;
-  right: 6%;
-  top: 90px;
-  width: 360px;
-  height: 360px;
-  max-width: 42%;
+  right: 5%;
+  top: 50px;
+  width: 520px;
+  height: 520px;
+  max-width: 54%;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  opacity: 0.20;
+  opacity: 0.24;
   pointer-events: none;
   z-index: 0;
   transition: opacity 0.35s ease, transform 0.35s ease;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+  filter: drop-shadow(0 6px 20px rgba(0,0,0,0.12));
 }
 
 .section-card:hover .section-watermark {
-  opacity: 0.28;
-  transform: scale(1.04);
+  opacity: 0.32;
+  transform: scale(1.05);
 }
 
 .watermark-lab {
@@ -415,42 +415,42 @@ body {
 
 .watermark-lab-2 {
   position: absolute;
-  right: 6%;
-  bottom: 80px;
+  right: 5%;
+  bottom: 50px;
   top: auto;
-  width: 360px;
-  height: 360px;
-  max-width: 42%;
+  width: 500px;
+  height: 500px;
+  max-width: 52%;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  opacity: 0.20;
+  opacity: 0.24;
   pointer-events: none;
   z-index: 0;
   background-image: url('RDI LOGOOO.png');
   transition: opacity 0.35s ease, transform 0.35s ease;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+  filter: drop-shadow(0 6px 20px rgba(0,0,0,0.12));
 }
 
 .section-card:hover .watermark-lab-2 {
-  opacity: 0.28;
-  transform: scale(1.04);
+  opacity: 0.32;
+  transform: scale(1.05);
 }
 
 .watermark-uec {
   background-image: url('UEC Logo  (1).png');
-  top: 70px;
+  top: 40px;
 }
 
 .watermark-dr {
   background-image: url('Dr Ahmed Gomaa.jpg');
   border-radius: 50%;
   background-size: cover;
-  border: 6px solid rgba(8, 145, 178, 0.35);
-  box-shadow: 0 0 35px rgba(8, 145, 178, 0.2);
-  top: 70px;
-  width: 330px;
-  height: 330px;
+  border: 8px solid rgba(8, 145, 178, 0.4);
+  box-shadow: 0 0 50px rgba(8, 145, 178, 0.3);
+  top: 40px;
+  width: 470px;
+  height: 470px;
 }
 
 .section-header {
@@ -476,22 +476,25 @@ body {
 }
 
 .section-title-logo {
-  width: 32px;
-  height: 32px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
-  border-radius: 6px;
+  border-radius: 8px;
   background: #ffffff;
-  padding: 2px;
-  border: 1px solid #dadce0;
-  box-shadow: 0 1px 3px rgba(60,64,67,0.1);
+  padding: 3px;
+  border: 1.5px solid #dadce0;
+  box-shadow: 0 2px 6px rgba(60,64,67,0.14);
   flex-shrink: 0;
 }
 
 .section-title-logo.circular {
+  width: 62px;
+  height: 62px;
   border-radius: 50%;
   object-fit: cover;
   padding: 0;
-  border: 2px solid #0891b2;
+  border: 3px solid #0891b2;
+  box-shadow: 0 3px 10px rgba(8, 145, 178, 0.35);
 }
 
 .sheet-tab-icon {
@@ -1518,9 +1521,14 @@ code {
   }
 
   .section-watermark {
-    width: 260px;
-    height: 260px;
-    opacity: 0.16;
+    width: 400px;
+    height: 400px;
+    opacity: 0.22;
+  }
+
+  .watermark-dr {
+    width: 370px;
+    height: 370px;
   }
 }
 
@@ -1537,8 +1545,8 @@ code {
   }
 
   .header-logo {
-    width: 64px;
-    height: 64px;
+    width: 86px;
+    height: 86px;
   }
 
   .header h1 {
@@ -1628,8 +1636,13 @@ code {
   }
 
   .section-title-logo {
-    width: 28px;
-    height: 28px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .section-title-logo.circular {
+    width: 52px;
+    height: 52px;
   }
 
   .section-header-actions {
@@ -1637,11 +1650,11 @@ code {
   }
 
   .section-watermark {
-    width: 220px;
-    height: 220px;
+    width: 340px;
+    height: 340px;
     right: 3%;
-    top: 60px;
-    opacity: 0.14;
+    top: 50px;
+    opacity: 0.18;
   }
 
   .watermark-lab-2 {
@@ -1649,8 +1662,8 @@ code {
   }
 
   .watermark-dr {
-    width: 200px;
-    height: 200px;
+    width: 310px;
+    height: 310px;
   }
 
   .table-wrap {
@@ -1693,8 +1706,8 @@ code {
   }
 
   .header-logo {
-    width: 56px;
-    height: 56px;
+    width: 76px;
+    height: 76px;
   }
 
   .header h1 {
@@ -1803,8 +1816,13 @@ code {
   }
 
   .section-title-logo {
-    width: 24px;
-    height: 24px;
+    width: 42px;
+    height: 42px;
+  }
+
+  .section-title-logo.circular {
+    width: 46px;
+    height: 46px;
   }
 
   .section-header-actions {
@@ -1914,16 +1932,16 @@ code {
 
   /* Watermark on Mobile */
   .section-watermark {
-    width: 160px;
-    height: 160px;
+    width: 250px;
+    height: 250px;
     right: 2%;
-    top: 50px;
-    opacity: 0.12;
+    top: 45px;
+    opacity: 0.16;
   }
 
   .watermark-dr {
-    width: 150px;
-    height: 150px;
+    width: 230px;
+    height: 230px;
   }
 
   /* Summary Section on Mobile */
