@@ -21,14 +21,16 @@
         <p class="header-subtitle">Faculty of Biotechnology, MSA University — Financial Management Dashboard</p>
       </div>
     </div>
-    <div class="header-funds">
+    <div class="header-funds-row">
       <div class="funds-badge">
         💰 Total Received Funds: <span class="amount">92,000 EGP</span>
       </div>
-    </div>
-    <div class="header-funds" style="margin-top:0.5rem">
-      <div class="funds-badge" style="background:rgba(255,255,255,0.1); font-size:0.95rem;">
-        📊 Remaining: <span class="amount" id="header-remaining" style="font-size:1.1rem;">0 EGP</span>
+      <div class="funds-badge remaining-badge">
+        📊 Remaining: <span class="amount" id="header-remaining">0 EGP</span>
+      </div>
+      <div class="sync-badge" id="sync-status-badge" title="Real-time multi-device cloud synchronization">
+        <span class="sync-dot synced"></span>
+        <span id="sync-status-text">Live Cloud Synced</span>
       </div>
     </div>
   </header>

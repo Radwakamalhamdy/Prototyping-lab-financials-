@@ -89,11 +89,43 @@
     ]
   };
 
+  // ── Cloud Database Constants ──
+  const FIREBASE_BASE_URL = 'https://prototyping-lab-financials-default-rtdb.firebaseio.com';
+  const FIREBASE_DATA_URL = `${FIREBASE_BASE_URL}/financial_data.json`;
+
   // ── State ──
   let data = {};          // { lab: [...], uec: [...], dr: [...] }
   let sortState = {};     // { lab: { key, dir }, ... }
   let editTarget = null;  // { tableId, index } or null
   let tempImg = '';        // base64 for modal preview
+  let sseSource = null;
+  let isSavingToCloud = false;
+
+  // ── Cloud Sync Status UI ──
+  function updateSyncUI(status, customMsg) {
+    const badge = document.getElementById('sync-status-badge');
+    const textEl = document.getElementById('sync-status-text');
+    const dotEl = badge ? badge.querySelector('.sync-dot') : null;
+    if (!badge || !textEl || !dotEl) return;
+
+    dotEl.className = 'sync-dot';
+    if (status === 'synced') {
+      dotEl.classList.add('synced');
+      textEl.textContent = customMsg || 'Live Cloud Synced';
+      badge.title = 'Real-time sync active. Edits sync automatically across mobile & laptop.';
+    } else if (status === 'saving') {
+      dotEl.classList.add('saving');
+      textEl.textContent = customMsg || 'Syncing to Cloud…';
+      badge.title = 'Uploading changes to cloud database…';
+    } else if (status === 'connecting') {
+      dotEl.classList.add('saving');
+      textEl.textContent = customMsg || 'Connecting…';
+    } else if (status === 'offline') {
+      dotEl.classList.add('offline');
+      textEl.textContent = customMsg || 'Saved Locally (Offline)';
+      badge.title = 'Offline mode: Changes saved in this browser.';
+    }
+  }
 
   // ── Init ──
   function init() {
@@ -101,6 +133,8 @@
     TABLE_IDS.forEach(id => { sortState[id] = { key: null, dir: 1 }; });
     renderAll();
     bindGlobalEvents();
+    fetchCloudDataOnStart();
+    initRealtimeSync();
   }
 
   function loadData() {
@@ -108,28 +142,121 @@
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
         data = JSON.parse(raw);
-        // Ensure all keys exist
         TABLE_IDS.forEach(id => { if (!Array.isArray(data[id])) data[id] = []; });
-        // If all tables are empty, restore initial financial seed records
         const totalItems = data.lab.length + data.uec.length + data.dr.length;
         if (totalItems === 0) {
           data = JSON.parse(JSON.stringify(SEED_DATA));
-          saveData();
+          localStorage.setItem(LS_KEY, JSON.stringify(data));
         }
       } else {
         data = JSON.parse(JSON.stringify(SEED_DATA));
-        saveData();
+        localStorage.setItem(LS_KEY, JSON.stringify(data));
       }
     } catch {
       data = JSON.parse(JSON.stringify(SEED_DATA));
-      saveData();
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    }
+  }
+
+  async function fetchCloudDataOnStart() {
+    try {
+      const resp = await fetch(FIREBASE_DATA_URL);
+      if (resp.ok) {
+        const cloudData = await resp.json();
+        if (cloudData && typeof cloudData === 'object') {
+          let hasAny = false;
+          TABLE_IDS.forEach(id => {
+            if (Array.isArray(cloudData[id]) && cloudData[id].length > 0) {
+              data[id] = cloudData[id];
+              hasAny = true;
+            }
+          });
+          if (hasAny) {
+            localStorage.setItem(LS_KEY, JSON.stringify(data));
+            renderAll();
+            updateSyncUI('synced');
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Initial cloud fetch notice (using cache):', e);
+    }
+  }
+
+  function initRealtimeSync() {
+    if (typeof EventSource === 'undefined') {
+      updateSyncUI('offline', 'Local Mode');
+      return;
+    }
+
+    try {
+      if (sseSource) sseSource.close();
+      updateSyncUI('connecting');
+      sseSource = new EventSource(FIREBASE_DATA_URL);
+
+      sseSource.addEventListener('put', (e) => {
+        try {
+          if (isSavingToCloud) return; // Ignore incoming reflection while pushing local edit
+          const payload = JSON.parse(e.data);
+          if (!payload) return;
+
+          if (payload.path === '/' && payload.data) {
+            const cd = payload.data;
+            let updated = false;
+            TABLE_IDS.forEach(id => {
+              if (Array.isArray(cd[id])) {
+                data[id] = cd[id];
+                updated = true;
+              }
+            });
+            if (updated) {
+              localStorage.setItem(LS_KEY, JSON.stringify(data));
+              renderAll();
+              updateSyncUI('synced');
+            }
+          } else if (payload.path && payload.data !== undefined) {
+            const parts = payload.path.replace(/^\//, '').split('/');
+            const tId = parts[0];
+            if (TABLE_IDS.includes(tId)) {
+              if (parts.length === 1 && Array.isArray(payload.data)) {
+                data[tId] = payload.data;
+              } else if (parts.length === 2) {
+                const idx = parseInt(parts[1], 10);
+                if (!isNaN(idx)) {
+                  if (payload.data === null) {
+                    data[tId].splice(idx, 1);
+                  } else {
+                    data[tId][idx] = payload.data;
+                  }
+                }
+              }
+              localStorage.setItem(LS_KEY, JSON.stringify(data));
+              renderAll();
+              updateSyncUI('synced');
+            }
+          }
+        } catch (err) {
+          console.error('SSE put parse error:', err);
+        }
+      });
+
+      sseSource.addEventListener('open', () => {
+        updateSyncUI('synced');
+      });
+
+      sseSource.addEventListener('error', () => {
+        updateSyncUI('offline', 'Reconnecting…');
+      });
+    } catch (err) {
+      console.error('SSE initialization error:', err);
+      updateSyncUI('offline');
     }
   }
 
   function resetDefaults() {
     showConfirm(
       '🔄 Reset to Default Data?',
-      'This will reload all pre-populated transactions for Prototyping Lab, UEC, and Dr. Ahmed Gomaa.',
+      'This will reload all pre-populated transactions and sync them to all devices.',
       () => {
         data = JSON.parse(JSON.stringify(SEED_DATA));
         saveData();
@@ -139,7 +266,33 @@
   }
 
   function saveData() {
+    // 1. Immediately cache locally
     localStorage.setItem(LS_KEY, JSON.stringify(data));
+
+    // 2. Sync to Firebase Cloud Database in background
+    syncDataToCloud();
+  }
+
+  async function syncDataToCloud() {
+    updateSyncUI('saving');
+    isSavingToCloud = true;
+    try {
+      const resp = await fetch(FIREBASE_DATA_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (resp.ok) {
+        updateSyncUI('synced');
+      } else {
+        updateSyncUI('offline', 'Sync Error');
+      }
+    } catch (err) {
+      console.error('Error saving to cloud:', err);
+      updateSyncUI('offline', 'Saved Locally');
+    } finally {
+      setTimeout(() => { isSavingToCloud = false; }, 800);
+    }
   }
 
   // ── Formatting ──
@@ -387,9 +540,30 @@
     if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
     const reader = new FileReader();
     reader.onload = (ev) => {
-      tempImg = ev.target.result;
-      const preview = document.getElementById('modal-img-preview');
-      preview.innerHTML = `<img src="${tempImg}" alt="Preview"><button class="remove-img" onclick="PLF.removePreviewImg()">✕ Remove Image</button>`;
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 900;
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX_DIM || h > MAX_DIM) {
+          if (w > h) {
+            h = Math.round((h * MAX_DIM) / w);
+            w = MAX_DIM;
+          } else {
+            w = Math.round((w * MAX_DIM) / h);
+            h = MAX_DIM;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        tempImg = canvas.toDataURL('image/jpeg', 0.78);
+        const preview = document.getElementById('modal-img-preview');
+        preview.innerHTML = `<img src="${tempImg}" alt="Preview"><button class="remove-img" onclick="PLF.removePreviewImg()">✕ Remove Image</button>`;
+      };
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   }
