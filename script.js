@@ -30,7 +30,8 @@
     ],
     dr: [
       { key: 'returned_uec', label: 'Returned from UEC', hint: 'Deducted from total money', isSummed: true, icon: '🔄' },
-      { key: 'received_dr',  label: 'Received from Dr. Ahmed', hint: 'Not summed from total', isSummed: false, icon: '📥' }
+      { key: 'received_dr',  label: 'Received from Dr. Ahmed', hint: 'Not summed from total', isSummed: false, icon: '📥' },
+      { key: 'pending',      label: 'Pending', hint: 'Summed in total', isSummed: true, icon: '⏳' }
     ],
     acc: [
       { key: 'pending',      label: 'Pending', hint: 'Summed in total', isSummed: true, icon: '⏳' },

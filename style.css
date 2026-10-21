@@ -695,6 +695,11 @@ th.col-status {
   min-width: 230px;
 }
 
+#section-dr th.col-status {
+  width: 340px;
+  min-width: 320px;
+}
+
 th.col-img {
   text-align: center;
   width: 120px;
@@ -1420,7 +1425,7 @@ code {
 
 .modal-status-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.65rem;
   margin-top: 0.4rem;
 }
