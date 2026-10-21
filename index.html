@@ -56,9 +56,9 @@
   <!-- ═══════════ GOOGLE SHEETS FORMULA BAR ═══════════ -->
   <div class="formula-bar-wrap">
     <div class="formula-bar">
-      <div class="fx-name-box" id="fx-cell-name">A1:E</div>
+      <div class="fx-name-box" id="fx-cell-name">A1:F</div>
       <div class="fx-symbol">ƒx</div>
-      <div class="fx-input" id="fx-formula-text">=SUM(Lab!C:C) + SUM(UEC!C:C) + SUM(Dr_Gomaa!C:C) &nbsp;|&nbsp; Remaining = 92,000 - Total_Spent</div>
+      <div class="fx-input" id="fx-formula-text">=SUM(Lab!C:C) + SUM(UEC!C:C) + SUM(Dr_Gomaa!C:C) + SUM(Acceleration!C:C) &nbsp;|&nbsp; Remaining = 92,000 - Total_Spent</div>
     </div>
   </div>
 
@@ -97,8 +97,9 @@
               <th class="col-num"><span class="col-letter">A</span><span class="col-name">#</span></th>
               <th class="col-item"><span class="col-letter">B</span><span class="col-name">Item / Description</span></th>
               <th class="col-price"><span class="col-letter">C</span><span class="col-name">Price (EGP)</span></th>
-              <th class="col-img"><span class="col-letter">D</span><span class="col-name">InstaPay Receipt</span></th>
-              <th class="col-act"><span class="col-letter">E</span><span class="col-name">Actions</span></th>
+              <th class="col-status"><span class="col-letter">D</span><span class="col-name">Status / Type</span></th>
+              <th class="col-img"><span class="col-letter">E</span><span class="col-name">InstaPay Receipt</span></th>
+              <th class="col-act"><span class="col-letter">F</span><span class="col-name">Actions</span></th>
             </tr>
           </thead>
           <tbody id="tbody-lab"></tbody>
@@ -139,8 +140,9 @@
               <th class="col-num"><span class="col-letter">A</span><span class="col-name">#</span></th>
               <th class="col-item"><span class="col-letter">B</span><span class="col-name">Item / Description</span></th>
               <th class="col-price"><span class="col-letter">C</span><span class="col-name">Price (EGP)</span></th>
-              <th class="col-img"><span class="col-letter">D</span><span class="col-name">InstaPay Receipt</span></th>
-              <th class="col-act"><span class="col-letter">E</span><span class="col-name">Actions</span></th>
+              <th class="col-status"><span class="col-letter">D</span><span class="col-name">Status / Type</span></th>
+              <th class="col-img"><span class="col-letter">E</span><span class="col-name">InstaPay Receipt</span></th>
+              <th class="col-act"><span class="col-letter">F</span><span class="col-name">Actions</span></th>
             </tr>
           </thead>
           <tbody id="tbody-uec"></tbody>
@@ -181,8 +183,9 @@
               <th class="col-num"><span class="col-letter">A</span><span class="col-name">#</span></th>
               <th class="col-item"><span class="col-letter">B</span><span class="col-name">Item / Description</span></th>
               <th class="col-price"><span class="col-letter">C</span><span class="col-name">Price (EGP)</span></th>
-              <th class="col-img"><span class="col-letter">D</span><span class="col-name">InstaPay Receipt</span></th>
-              <th class="col-act"><span class="col-letter">E</span><span class="col-name">Actions</span></th>
+              <th class="col-status"><span class="col-letter">D</span><span class="col-name">Status / Type</span></th>
+              <th class="col-img"><span class="col-letter">E</span><span class="col-name">InstaPay Receipt</span></th>
+              <th class="col-act"><span class="col-letter">F</span><span class="col-name">Actions</span></th>
             </tr>
           </thead>
           <tbody id="tbody-dr"></tbody>
@@ -195,6 +198,51 @@
       <div class="table-footer">
         <div class="footer-formula"><span class="formula-tag">=SUM(C2:C)</span></div>
         <div class="table-total"><span class="label">Total Dr. Ahmed Gomaa:</span> <span class="total-val" id="total-dr">0 EGP</span></div>
+      </div>
+    </section>
+
+    <!-- ═══════════ TABLE 4 — Acceleration Program ═══════════ -->
+    <section class="section-card" id="section-acc">
+      <div class="section-watermark watermark-acc"></div>
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-title-logo acc-logo-box">
+            <span class="acc-logo-emoji">🚀</span>
+          </div>
+          <span>Acceleration Program Financials</span>
+          <span class="badge" id="badge-acc">0 transactions</span>
+        </div>
+        <div class="section-header-actions">
+          <button class="add-btn" onclick="PLF.addTx('acc')">➕ Add Row</button>
+        </div>
+      </div>
+      <div class="sort-controls" id="sort-acc">
+        <span class="sort-label">Sort Column:</span>
+        <button class="sort-btn" data-key="item" onclick="PLF.sortBy('acc','item')">Col B: Item <span class="arrow">▲</span></button>
+        <button class="sort-btn" data-key="price" onclick="PLF.sortBy('acc','price')">Col C: Price <span class="arrow">▲</span></button>
+      </div>
+      <div class="table-wrap">
+        <table class="sheet-table">
+          <thead>
+            <tr>
+              <th class="col-num"><span class="col-letter">A</span><span class="col-name">#</span></th>
+              <th class="col-item"><span class="col-letter">B</span><span class="col-name">Item / Description</span></th>
+              <th class="col-price"><span class="col-letter">C</span><span class="col-name">Price (EGP)</span></th>
+              <th class="col-status"><span class="col-letter">D</span><span class="col-name">Status / Type</span></th>
+              <th class="col-img"><span class="col-letter">E</span><span class="col-name">InstaPay Receipt</span></th>
+              <th class="col-act"><span class="col-letter">F</span><span class="col-name">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-acc"></tbody>
+        </table>
+        <div class="empty-state" id="empty-acc" style="display:none;">
+          <div class="empty-icon">📋</div>
+          <p>No transactions yet. Click <strong>Add Row</strong> to insert an entry.</p>
+        </div>
+      </div>
+      <div class="table-footer">
+        <div class="footer-formula"><span class="formula-tag">=SUM(C2:C)</span></div>
+        <div class="table-total"><span class="label">Total Acceleration Program:</span> <span class="total-val" id="total-acc">0 EGP</span></div>
       </div>
     </section>
 
@@ -226,6 +274,11 @@
           <div class="card-label">Dr. Ahmed Gomaa</div>
           <div class="card-value" id="sum-dr">0 EGP</div>
           <div class="card-hint" id="hint-dr">0% of budget</div>
+        </div>
+        <div class="summary-card acc">
+          <div class="card-label">Acceleration Program</div>
+          <div class="card-value" id="sum-acc">0 EGP</div>
+          <div class="card-hint" id="hint-acc">0% of budget</div>
         </div>
         <div class="summary-card spent">
           <div class="card-label">Total Spent</div>
@@ -296,16 +349,23 @@
                 <td class="cell-center" id="tbl-share-dr">0.0%</td>
                 <td class="cell-center"><span class="sheet-pill pill-cyan">Supervisory</span></td>
               </tr>
+              <tr>
+                <td class="col-num">5</td>
+                <td>🚀 Acceleration Program Financials</td>
+                <td class="cell-amount" id="tbl-sum-acc">0 EGP</td>
+                <td class="cell-center" id="tbl-share-acc">0.0%</td>
+                <td class="cell-center"><span class="sheet-pill pill-amber">Incubation & Growth</span></td>
+              </tr>
               <tr class="row-spent-total">
                 <td class="col-num">Σ</td>
-                <td class="cell-bold">📉 Total Spent <code>=SUM(Rows 2:4)</code></td>
+                <td class="cell-bold">📉 Total Spent <code>=SUM(Rows 2:5)</code></td>
                 <td class="cell-amount cell-spent" id="tbl-sum-spent">0 EGP</td>
                 <td class="cell-center cell-bold" id="tbl-share-spent">0.0%</td>
                 <td class="cell-center"><span class="sheet-pill pill-orange">Total Outflow</span></td>
               </tr>
               <tr class="row-net-balance">
                 <td class="col-num">Δ</td>
-                <td class="cell-bold">💵 Net Remaining Funds <code>=Row 1 - Row 5</code></td>
+                <td class="cell-bold">💵 Net Remaining Funds <code>=Row 1 - Row 6</code></td>
                 <td class="cell-amount cell-net" id="tbl-sum-remaining">0 EGP</td>
                 <td class="cell-center cell-bold" id="tbl-share-remaining">0.0%</td>
                 <td class="cell-center" id="tbl-status-cell"><span class="sheet-pill pill-green">Surplus Balance</span></td>
@@ -338,6 +398,10 @@
         <div class="form-group">
           <label for="modal-price">Price (EGP)</label>
           <input type="number" id="modal-price" placeholder="e.g. 1500" min="0" step="1">
+        </div>
+        <div class="form-group">
+          <label id="modal-status-label">Status / Classification</label>
+          <div class="modal-status-options" id="modal-status-options"></div>
         </div>
         <div class="form-group">
           <label>InstaPay Transaction Image</label>

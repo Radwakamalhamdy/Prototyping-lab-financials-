@@ -5,10 +5,11 @@ Financial tracking and management dashboard for the Prototyping Lab at the Facul
 ## 🚀 Features
 
 - **Google Sheets / Spreadsheet Aesthetic**: Authentic cell gridlines, row number indicators, column letter tags (`A` to `E`), and live formula calculation bar (`ƒx`).
-- **3 Segregated Financial Accounts**:
+- **4 Segregated Financial Accounts**:
   - 🏗️ **Prototyping Lab Financials** (with official RDI watermark)
   - 🏛️ **UEC Financials** (with official UEC logo watermark)
   - 👨‍🏫 **Dr. Ahmed Gomaa Financials** (with Dr. Ahmed Gomaa photo watermark)
+  - 🚀 **Acceleration Program Financials** (with dedicated Acceleration watermark & branding)
 - **Financial Controls & Receipts**:
   - Track Item, Price (EGP), and InstaPay transaction receipt images.
   - Image preview lightbox with full zoom.

@@ -10,12 +10,79 @@
   const TOTAL_RECEIVED = 92000;
   const LS_KEY = 'plf_data_v4';
 
-  const TABLE_IDS = ['lab', 'uec', 'dr'];
+  const TABLE_IDS = ['lab', 'uec', 'dr', 'acc'];
   const TABLE_LABELS = {
     lab: 'Prototyping Lab Financials',
     uec: 'UEC Financials',
-    dr: 'Dr. Ahmed Gomaa Financials'
+    dr: 'Dr. Ahmed Gomaa Financials',
+    acc: 'Acceleration Program Financials'
   };
+
+  // ── Status Options Configuration Per Table ──
+  const STATUS_CONFIG = {
+    lab: [
+      { key: 'received', label: 'Received', hint: 'Summed in total', isSummed: true, icon: '✅' },
+      { key: 'pending',  label: 'Pending',  hint: 'Summed in total', isSummed: true, icon: '⏳' }
+    ],
+    uec: [
+      { key: 'received', label: 'Received', hint: 'Summed in total', isSummed: true, icon: '✅' },
+      { key: 'pending',  label: 'Pending',  hint: 'Summed in total', isSummed: true, icon: '⏳' }
+    ],
+    dr: [
+      { key: 'returned_uec', label: 'Returned from UEC', hint: 'Deducted from total money', isSummed: true, icon: '🔄' },
+      { key: 'received_dr',  label: 'Received from Dr. Ahmed', hint: 'Not summed from total', isSummed: false, icon: '📥' }
+    ],
+    acc: [
+      { key: 'pending',      label: 'Pending', hint: 'Summed in total', isSummed: true, icon: '⏳' },
+      { key: 'received_dr',  label: 'Received from Dr. Ahmed', hint: 'Not summed from total', isSummed: false, icon: '📥' }
+    ]
+  };
+
+  function getRowStatus(tableId, tx) {
+    const cfg = STATUS_CONFIG[tableId];
+    if (!cfg) return 'received';
+    if (tx && tx.status && cfg.some(c => c.key === tx.status)) {
+      return tx.status;
+    }
+    return cfg[0].key;
+  }
+
+  function isRowSummed(tableId, status) {
+    const cfg = STATUS_CONFIG[tableId];
+    if (!cfg) return true;
+    const opt = cfg.find(c => c.key === status);
+    return opt ? opt.isSummed : true;
+  }
+
+  function getStatusMeta(tableId, status) {
+    const cfg = STATUS_CONFIG[tableId] || [];
+    return cfg.find(c => c.key === status) || cfg[0];
+  }
+
+  function renderStatusToggle(tableId, realIdx, currentStatus) {
+    const cfg = STATUS_CONFIG[tableId] || [];
+    return `<div class="status-toggle-wrap">
+      ${cfg.map(opt => {
+        const isActive = opt.key === currentStatus;
+        const activeCls = isActive ? 'active' : '';
+        const summedCls = opt.isSummed ? 'is-summed' : 'not-summed';
+        return `<button type="button" 
+          class="status-toggle-btn ${activeCls} ${opt.key} ${summedCls}" 
+          onclick="event.stopPropagation(); PLF.setRowStatus('${tableId}', ${realIdx}, '${opt.key}')" 
+          title="${opt.label} (${opt.hint})">
+          <span class="st-icon">${opt.icon}</span>
+          <span class="st-label">${opt.label}</span>
+        </button>`;
+      }).join('')}
+    </div>`;
+  }
+
+  function setRowStatus(tableId, index, newStatus) {
+    if (!data[tableId] || !data[tableId][index]) return;
+    data[tableId][index].status = newStatus;
+    saveData();
+    renderAll();
+  }
 
   // ── Default (seed) data ──
   const SEED_DATA = {
@@ -86,7 +153,8 @@
       { item: 'مكرونه سجق', price: 80, img: '' },
       { item: 'مكرونه سجق', price: 80, img: '' },
       { item: 'فول وطعميه توصيل', price: 90, img: '' }
-    ]
+    ],
+    acc: []
   };
 
   // ── Cloud Database Constants ──
@@ -143,7 +211,7 @@
       if (raw) {
         data = JSON.parse(raw);
         TABLE_IDS.forEach(id => { if (!Array.isArray(data[id])) data[id] = []; });
-        const totalItems = data.lab.length + data.uec.length + data.dr.length;
+        const totalItems = TABLE_IDS.reduce((sum, id) => sum + (data[id] ? data[id].length : 0), 0);
         if (totalItems === 0) {
           data = JSON.parse(JSON.stringify(SEED_DATA));
           localStorage.setItem(LS_KEY, JSON.stringify(data));
@@ -301,7 +369,17 @@
   }
 
   function totalOf(tableId) {
-    return (data[tableId] || []).reduce((s, t) => s + Number(t.price || 0), 0);
+    return (data[tableId] || []).reduce((s, t) => {
+      const st = getRowStatus(tableId, t);
+      return s + (isRowSummed(tableId, st) ? Number(t.price || 0) : 0);
+    }, 0);
+  }
+
+  function nonSummedTotalOf(tableId) {
+    return (data[tableId] || []).reduce((s, t) => {
+      const st = getRowStatus(tableId, t);
+      return s + (!isRowSummed(tableId, st) ? Number(t.price || 0) : 0);
+    }, 0);
   }
 
   // ── Render ──
@@ -319,7 +397,14 @@
     const empty = document.getElementById(`empty-${tableId}`);
 
     badge.textContent = `${items.length} transaction${items.length !== 1 ? 's' : ''}`;
-    totalEl.textContent = fmt(totalOf(tableId));
+    
+    const summedTotal = totalOf(tableId);
+    const nonSummedTotal = nonSummedTotalOf(tableId);
+    if (nonSummedTotal > 0) {
+      totalEl.innerHTML = `${fmt(summedTotal)} <span class="footer-excluded-note" title="Amount excluded from total spent">(${fmt(nonSummedTotal)} excluded)</span>`;
+    } else {
+      totalEl.textContent = fmt(summedTotal);
+    }
 
     if (items.length === 0) {
       tbody.innerHTML = '';
@@ -330,13 +415,23 @@
 
     tbody.innerHTML = items.map((t, vi) => {
       const realIdx = t._idx;
+      const currentStatus = getRowStatus(tableId, t);
+      const isSummed = isRowSummed(tableId, currentStatus);
+      const statusToggleHtml = renderStatusToggle(tableId, realIdx, currentStatus);
+
       const imgHtml = t.img
         ? `<img class="thumb" src="${t.img}" alt="Receipt" onclick="event.stopPropagation(); PLF.openLightbox(this.src)" title="Click to view full receipt">`
         : `<div class="no-img" title="No image uploaded">📷</div>`;
-      return `<tr onclick="PLF.selectCell('${tableId}', ${vi + 1}, '${escHtml(t.item).replace(/'/g, "\\'")}', ${t.price})">
+
+      const priceHtml = isSummed
+        ? `<span class="price-val">${fmt(t.price)}</span>`
+        : `<span class="price-val excluded-price" title="Not summed from total">${fmt(t.price)}</span><span class="zero-badge" title="Excluded from spending sum">0 EGP in total</span>`;
+
+      return `<tr class="${!isSummed ? 'row-not-summed' : ''}" onclick="PLF.selectCell('${tableId}', ${vi + 1}, '${escHtml(t.item).replace(/'/g, "\\'")}', ${t.price}, '${currentStatus}')">
         <td class="row-num">${vi + 1}</td>
         <td class="item-name" dir="auto">${escHtml(t.item)}</td>
-        <td class="price-cell">${fmt(t.price)}</td>
+        <td class="price-cell">${priceHtml}</td>
+        <td class="status-cell">${statusToggleHtml}</td>
         <td class="img-cell">${imgHtml}</td>
         <td class="act-cell"><div class="actions-cell">
           <button class="act-btn edit" onclick="event.stopPropagation(); PLF.editTx('${tableId}',${realIdx})">✏️ Edit</button>
@@ -346,13 +441,18 @@
     }).join('');
   }
 
-  function selectCell(tableId, rowNum, item, price) {
+  function selectCell(tableId, rowNum, item, price, status) {
     const fxName = document.getElementById('fx-cell-name');
     const fxText = document.getElementById('fx-formula-text');
-    const sheetLabels = { lab: 'Lab', uec: 'UEC', dr: 'Dr_Gomaa' };
+    const sheetLabels = { lab: 'Lab', uec: 'UEC', dr: 'Dr_Gomaa', acc: 'Acceleration' };
     const tabName = sheetLabels[tableId] || tableId;
+    const meta = getStatusMeta(tableId, status);
+    const statusNote = meta.isSummed
+      ? `<span style="color:#0f9d58; font-weight:700;">[${meta.label} — Summed in Total]</span>`
+      : `<span style="color:#d93025; font-weight:700;">[${meta.label} — Excluded from Total (0 EGP)]</span>`;
+
     if (fxName) fxName.textContent = `${tabName}!B${rowNum + 1}`;
-    if (fxText) fxText.innerHTML = `<strong>${escHtml(item)}</strong> &nbsp;=&nbsp; <span style="color:#1a73e8; font-weight:700;">${fmt(price)}</span> &nbsp;|&nbsp; <em>Row ${rowNum} in ${TABLE_LABELS[tableId]}</em>`;
+    if (fxText) fxText.innerHTML = `<strong>${escHtml(item)}</strong> &nbsp;=&nbsp; <span style="color:#1a73e8; font-weight:700;">${fmt(price)}</span> &nbsp;${statusNote}&nbsp;|&nbsp; <em>Row ${rowNum} in ${TABLE_LABELS[tableId]}</em>`;
   }
 
   function getSorted(tableId) {
@@ -372,13 +472,15 @@
     const labT = totalOf('lab');
     const uecT = totalOf('uec');
     const drT  = totalOf('dr');
-    const spent = labT + uecT + drT;
+    const accT = totalOf('acc');
+    const spent = labT + uecT + drT + accT;
     const remaining = TOTAL_RECEIVED - spent;
 
     const pct = TOTAL_RECEIVED > 0 ? (spent / TOTAL_RECEIVED) * 100 : 0;
     const labPct = TOTAL_RECEIVED > 0 ? (labT / TOTAL_RECEIVED) * 100 : 0;
     const uecPct = TOTAL_RECEIVED > 0 ? (uecT / TOTAL_RECEIVED) * 100 : 0;
     const drPct  = TOTAL_RECEIVED > 0 ? (drT / TOTAL_RECEIVED) * 100 : 0;
+    const accPct = TOTAL_RECEIVED > 0 ? (accT / TOTAL_RECEIVED) * 100 : 0;
     const remPct = TOTAL_RECEIVED > 0 ? (remaining / TOTAL_RECEIVED) * 100 : 0;
 
     // Top Cards
@@ -386,6 +488,8 @@
     document.getElementById('sum-lab').textContent = fmt(labT);
     document.getElementById('sum-uec').textContent = fmt(uecT);
     document.getElementById('sum-dr').textContent = fmt(drT);
+    const sumAcc = document.getElementById('sum-acc');
+    if (sumAcc) sumAcc.textContent = fmt(accT);
     document.getElementById('sum-spent').textContent = fmt(spent);
     document.getElementById('sum-remaining').textContent = fmt(remaining);
 
@@ -394,6 +498,7 @@
     setTxt('hint-lab', labPct.toFixed(1) + '% of budget');
     setTxt('hint-uec', uecPct.toFixed(1) + '% of budget');
     setTxt('hint-dr', drPct.toFixed(1) + '% of budget');
+    setTxt('hint-acc', accPct.toFixed(1) + '% of budget');
     setTxt('hint-spent', pct.toFixed(1) + '% utilized');
     setTxt('hint-remaining', remaining >= 0 ? `${remPct.toFixed(1)}% available` : 'Deficit!');
 
@@ -419,6 +524,8 @@
     setTxt('tbl-share-uec', uecPct.toFixed(1) + '%');
     setTxt('tbl-sum-dr', fmt(drT));
     setTxt('tbl-share-dr', drPct.toFixed(1) + '%');
+    setTxt('tbl-sum-acc', fmt(accT));
+    setTxt('tbl-share-acc', accPct.toFixed(1) + '%');
     setTxt('tbl-sum-spent', fmt(spent));
     setTxt('tbl-share-spent', pct.toFixed(1) + '%');
     setTxt('tbl-sum-remaining', fmt(remaining));
@@ -488,11 +595,15 @@
     const priceInput = document.getElementById('modal-price');
     const preview = document.getElementById('modal-img-preview');
 
+    const cfg = STATUS_CONFIG[tableId] || [];
+    let activeStatus = cfg[0].key;
+
     if (index !== undefined) {
       const tx = data[tableId][index];
       titleEl.textContent = `Edit Transaction — ${TABLE_LABELS[tableId]}`;
       itemInput.value = tx.item;
       priceInput.value = tx.price;
+      activeStatus = getRowStatus(tableId, tx);
       if (tx.img) {
         tempImg = tx.img;
         preview.innerHTML = `<img src="${tx.img}" alt="Preview"><button class="remove-img" onclick="PLF.removePreviewImg()">✕ Remove Image</button>`;
@@ -504,10 +615,38 @@
       itemInput.value = '';
       priceInput.value = '';
       preview.innerHTML = '';
+      activeStatus = cfg[0].key;
     }
+
+    renderModalStatusOptions(tableId, activeStatus);
 
     modal.classList.add('active');
     itemInput.focus();
+  }
+
+  function renderModalStatusOptions(tableId, activeStatus) {
+    const container = document.getElementById('modal-status-options');
+    if (!container) return;
+    const cfg = STATUS_CONFIG[tableId] || [];
+    container.innerHTML = cfg.map(opt => {
+      const isChecked = opt.key === activeStatus ? 'checked' : '';
+      const selectedCls = opt.key === activeStatus ? 'selected' : '';
+      return `<label class="modal-status-btn ${selectedCls} ${opt.key}" id="m-status-lbl-${opt.key}">
+        <input type="radio" name="modal-status" value="${opt.key}" ${isChecked} onchange="PLF.onModalStatusChange('${opt.key}')">
+        <span class="m-icon">${opt.icon}</span>
+        <div class="m-text">
+          <strong>${opt.label}</strong>
+          <small>${opt.hint}</small>
+        </div>
+      </label>`;
+    }).join('');
+  }
+
+  function onModalStatusChange(val) {
+    document.querySelectorAll('.modal-status-btn').forEach(lbl => {
+      const input = lbl.querySelector('input');
+      lbl.classList.toggle('selected', input && input.checked);
+    });
   }
 
   function closeModal() {
@@ -522,7 +661,10 @@
     const price = parseFloat(document.getElementById('modal-price').value) || 0;
     if (!item) { alert('Please enter an item name.'); return; }
 
-    const tx = { item, price, img: tempImg };
+    const selectedRadio = document.querySelector('input[name="modal-status"]:checked');
+    const status = selectedRadio ? selectedRadio.value : getRowStatus(editTarget.tableId, null);
+
+    const tx = { item, price, img: tempImg, status };
 
     if (editTarget.index >= 0) {
       data[editTarget.tableId][editTarget.index] = tx;
@@ -623,17 +765,20 @@
   // ── CSV Export ──
   function exportCSV() {
     let csv = '\uFEFF'; // BOM for Arabic
-    csv += 'Table,Item,Price (EGP)\n';
+    csv += 'Table,Item,Price (EGP),Status / Type,Counted in Spending\n';
     TABLE_IDS.forEach(id => {
       data[id].forEach(t => {
-        csv += `"${TABLE_LABELS[id]}","${t.item}","${t.price}"\n`;
+        const st = getRowStatus(id, t);
+        const meta = getStatusMeta(id, st);
+        csv += `"${TABLE_LABELS[id]}","${t.item}","${t.price}","${meta.label}","${meta.isSummed ? 'Yes' : 'No (Excluded)'}"\n`;
       });
     });
-    const labT = totalOf('lab'), uecT = totalOf('uec'), drT = totalOf('dr');
-    const spent = labT + uecT + drT;
+    const labT = totalOf('lab'), uecT = totalOf('uec'), drT = totalOf('dr'), accT = totalOf('acc');
+    const spent = labT + uecT + drT + accT;
     csv += `\n"Total Prototyping Lab Financials","","${labT}"\n`;
     csv += `"Total UEC Financials","","${uecT}"\n`;
     csv += `"Total Dr. Ahmed Gomaa Financials","","${drT}"\n`;
+    csv += `"Total Acceleration Program Financials","","${accT}"\n`;
     csv += `"Total Spent","","${spent}"\n`;
     csv += `"Total Received","","${TOTAL_RECEIVED}"\n`;
     csv += `"Remaining Funds","","${TOTAL_RECEIVED - spent}"\n`;
@@ -648,15 +793,16 @@
 
   // ── Shared HTML builder for exports (Google Sheets style) ──
   function buildExportHTML() {
-    const labT = totalOf('lab'), uecT = totalOf('uec'), drT = totalOf('dr');
-    const spent = labT + uecT + drT;
+    const labT = totalOf('lab'), uecT = totalOf('uec'), drT = totalOf('dr'), accT = totalOf('acc');
+    const spent = labT + uecT + drT + accT;
     const remaining = TOTAL_RECEIVED - spent;
     const now = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
     const sectionColors = {
       lab:  { hdr: '#1a56db', accent: '#dbeafe' },
       uec:  { hdr: '#7c3aed', accent: '#ede9fe' },
-      dr:   { hdr: '#0891b2', accent: '#cffafe' }
+      dr:   { hdr: '#0891b2', accent: '#cffafe' },
+      acc:  { hdr: '#d97706', accent: '#fef3c7' }
     };
 
     let html = '<!DOCTYPE html>\n<html lang="en"><head><meta charset="UTF-8">\n';
@@ -712,10 +858,11 @@
 
     // Top summary bar
     html += '<div class="ts">';
+    const totalTxCount = TABLE_IDS.reduce((s, id) => s + (data[id] ? data[id].length : 0), 0);
     html += '<div class="c"><div class="cl">Total Received</div><div class="cv gn">' + fmt(TOTAL_RECEIVED) + '</div></div>';
     html += '<div class="c"><div class="cl">Total Spent</div><div class="cv or">' + fmt(spent) + '</div></div>';
     html += '<div class="c"><div class="cl">Remaining</div><div class="cv ' + (remaining >= 0 ? 'gn' : 'rd') + '">' + fmt(remaining) + '</div></div>';
-    html += '<div class="c"><div class="cl">Transactions</div><div class="cv bl">' + (data.lab.length + data.uec.length + data.dr.length) + '</div></div>';
+    html += '<div class="c"><div class="cl">Transactions</div><div class="cv bl">' + totalTxCount + '</div></div>';
     html += '</div>\n<div class="cnt">\n';
 
     // Sections
@@ -729,9 +876,13 @@
       if (items.length === 0) {
         html += '<div class="em">No transactions recorded</div>';
       } else {
-        html += '<table class="st"><thead><tr><th class="nc">#</th><th>Item / Description</th><th class="pc">Amount (EGP)</th></tr></thead><tbody>';
+        html += '<table class="st"><thead><tr><th class="nc">#</th><th>Item / Description</th><th class="pc">Amount (EGP)</th><th class="sc">Status / Type</th></tr></thead><tbody>';
         items.forEach(function(t, i) {
-          html += '<tr><td class="nc">' + (i + 1) + '</td><td>' + escHtml(t.item) + '</td><td class="pc">' + fmt(t.price) + '</td></tr>';
+          const st = getRowStatus(id, t);
+          const meta = getStatusMeta(id, st);
+          const isSummed = isRowSummed(id, st);
+          const priceDisplay = isSummed ? fmt(t.price) : fmt(t.price) + ' (0 EGP)';
+          html += '<tr><td class="nc">' + (i + 1) + '</td><td>' + escHtml(t.item) + '</td><td class="pc">' + priceDisplay + '</td><td class="sc"><span class="badge-' + (isSummed ? 'summed' : 'excluded') + '">' + meta.icon + ' ' + meta.label + '</span></td></tr>';
         });
         html += '</tbody></table>';
         html += '<div class="tb" style="border-top-color:' + co.hdr + '; background:' + co.accent + '"><span class="tl">Total ' + TABLE_LABELS[id] + ':</span><span class="tv" style="color:' + co.hdr + '">' + fmt(total) + '</span></div>';
@@ -747,6 +898,7 @@
     html += '<tr><td class="si">🏗️</td><td class="sl">Prototyping Lab Financials</td><td class="sv" style="color:#1a56db">' + fmt(labT) + '</td></tr>';
     html += '<tr><td class="si">🏛️</td><td class="sl">UEC Financials</td><td class="sv" style="color:#7c3aed">' + fmt(uecT) + '</td></tr>';
     html += '<tr><td class="si">👨‍🏫</td><td class="sl">Dr. Ahmed Gomaa Financials</td><td class="sv" style="color:#0891b2">' + fmt(drT) + '</td></tr>';
+    html += '<tr><td class="si">🚀</td><td class="sl">Acceleration Program Financials</td><td class="sv" style="color:#d97706">' + fmt(accT) + '</td></tr>';
     html += '<tr class="dv"><td colspan="3"></td></tr>';
     html += '<tr class="hl"><td class="si">📉</td><td class="sl" style="font-weight:800">Total Spent</td><td class="sv" style="color:#e37400; font-size:12pt">' + fmt(spent) + '</td></tr>';
     html += '<tr class="rr' + (remaining < 0 ? ' neg' : '') + '"><td class="si">' + (remaining >= 0 ? '✅' : '⚠️') + '</td><td class="sl" style="font-weight:800; font-size:11pt">Remaining Funds</td><td class="sv" style="color:' + (remaining >= 0 ? '#0f9d58' : '#d93025') + '; font-size:13pt">' + fmt(remaining) + '</td></tr>';
@@ -808,7 +960,8 @@
           '🔴 Are you absolutely sure?',
           'All financial records will be permanently erased. Type "yes" won\'t be required, but this is your final chance to cancel.',
           () => {
-            data = { lab: [], uec: [], dr: [] };
+            data = {};
+            TABLE_IDS.forEach(id => { data[id] = []; });
             saveData();
             renderAll();
           }
@@ -881,7 +1034,9 @@
     exportPDF,
     selectCell,
     resetDefaults,
-    clearAll
+    clearAll,
+    setRowStatus,
+    onModalStatusChange
   };
 
   // ── Boot ──
