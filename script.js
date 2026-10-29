@@ -30,12 +30,11 @@
     ],
     dr: [
       { key: 'returned_uec', label: 'Returned from UEC', hint: 'Deducted from total money', isSummed: true, icon: '🔄' },
-      { key: 'received_dr',  label: 'Received from Dr. Ahmed', hint: 'Not summed from total', isSummed: false, icon: '📥' },
       { key: 'pending',      label: 'Pending', hint: 'Summed in total', isSummed: true, icon: '⏳' }
     ],
     acc: [
-      { key: 'pending',      label: 'Pending', hint: 'Summed in total', isSummed: true, icon: '⏳' },
-      { key: 'received_dr',  label: 'Received from Dr. Ahmed', hint: 'Not summed from total', isSummed: false, icon: '📥' }
+      { key: 'received',     label: 'Received', hint: 'Summed in total', isSummed: true, icon: '✅' },
+      { key: 'pending',      label: 'Pending', hint: 'Summed in total', isSummed: true, icon: '⏳' }
     ]
   };
 
@@ -136,24 +135,29 @@
       { item: 'بوست Private Universities - 17/9', price: 5000, img: '' }
     ],
     dr: [
-      { item: 'شاورما', price: 140, img: '' },
-      { item: 'هديه كارما', price: 550, img: '' },
-      { item: 'بيتزا', price: 480, img: '' },
-      { item: 'Vending Machine', price: 50, img: '' },
-      { item: 'سحب للدكتور', price: 5000, img: '' },
-      { item: 'Vending Machine', price: 40, img: '' },
-      { item: 'بيتزا', price: 680, img: '' },
-      { item: 'رحيمه اكل الدكتور', price: 110, img: '' },
-      { item: 'Vending Machine', price: 50, img: '' },
-      { item: 'سحبتهم للدكتور', price: 4500, img: '' },
-      { item: 'اكل الدكتور', price: 100, img: '' },
-      { item: 'سحبتهم للدكتور', price: 3000, img: '' },
-      { item: 'ساندوتش كوفته', price: 130, img: '' },
-      { item: 'شيبسي', price: 20, img: '' },
-      { item: 'مكرونه سجق', price: 80, img: '' },
-      { item: 'مكرونه سجق', price: 80, img: '' },
-      { item: 'مكرونه سجق', price: 80, img: '' },
-      { item: 'فول وطعميه توصيل', price: 90, img: '' }
+      { item: 'شاورما', price: 140, img: '', status: 'returned_uec' },
+      { item: 'هديه كارما', price: 550, img: '', status: 'returned_uec' },
+      { item: 'بيتزا', price: 480, img: '', status: 'returned_uec' },
+      { item: 'Vending Machine', price: 50, img: '', status: 'returned_uec' },
+      { item: 'سحب للدكتور', price: 5000, img: '', status: 'returned_uec' },
+      { item: 'Vending Machine', price: 40, img: '', status: 'returned_uec' },
+      { item: 'بيتزا', price: 680, img: '', status: 'returned_uec' },
+      { item: 'رحيمه اكل الدكتور', price: 110, img: '', status: 'returned_uec' },
+      { item: 'Vending Machine', price: 50, img: '', status: 'returned_uec' },
+      { item: 'سحبتهم للدكتور', price: 4500, img: '', status: 'returned_uec' },
+      { item: 'اكل الدكتور', price: 100, img: '', status: 'returned_uec' },
+      { item: 'سحبتهم للدكتور', price: 3000, img: '', status: 'returned_uec' },
+      { item: 'ساندوتش كوفته', price: 130, img: '', status: 'returned_uec' },
+      { item: 'شيبسي', price: 20, img: '', status: 'returned_uec' },
+      { item: 'مكرونه سجق', price: 80, img: '', status: 'returned_uec' },
+      { item: 'سحبت للدكتور 2000', price: 2000, img: '', status: 'returned_uec' },
+      { item: 'فول', price: 20, img: '', status: 'returned_uec' },
+      { item: 'شاي كرك', price: 50, img: '', status: 'returned_uec' },
+      { item: 'سحبت للدكتور', price: 4000, img: '', status: 'returned_uec' },
+      { item: 'اوبر uec رايح', price: 380, img: '', status: 'returned_uec' },
+      { item: 'اوبر uec راجع', price: 430, img: '', status: 'returned_uec' },
+      { item: 'كريب للدكتور', price: 100, img: '', status: 'returned_uec' },
+      { item: '1500 لرحمه نصف شهر', price: 1500, img: '', status: 'returned_uec' }
     ],
     acc: []
   };
@@ -169,6 +173,7 @@
   let tempImg = '';        // base64 for modal preview
   let sseSource = null;
   let isSavingToCloud = false;
+  let drFilter = 'all';   // 'all' | 'pending' | 'returned_uec' | 'received_dr'
 
   // ── Cloud Sync Status UI ──
   function updateSyncUI(status, customMsg) {
@@ -206,17 +211,27 @@
     initRealtimeSync();
   }
 
+  function sanitizeData() {
+    if (Array.isArray(data.dr)) {
+      data.dr = data.dr.filter(t => t.status !== 'received_dr');
+    }
+    if (Array.isArray(data.acc)) {
+      data.acc = data.acc.filter(t => t.status !== 'received_dr');
+    }
+  }
+
   function loadData() {
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
         data = JSON.parse(raw);
         TABLE_IDS.forEach(id => { if (!Array.isArray(data[id])) data[id] = []; });
+        sanitizeData();
         const totalItems = TABLE_IDS.reduce((sum, id) => sum + (data[id] ? data[id].length : 0), 0);
         if (totalItems === 0) {
           data = JSON.parse(JSON.stringify(SEED_DATA));
-          localStorage.setItem(LS_KEY, JSON.stringify(data));
         }
+        localStorage.setItem(LS_KEY, JSON.stringify(data));
       } else {
         data = JSON.parse(JSON.stringify(SEED_DATA));
         localStorage.setItem(LS_KEY, JSON.stringify(data));
@@ -241,6 +256,7 @@
             }
           });
           if (hasAny) {
+            sanitizeData();
             localStorage.setItem(LS_KEY, JSON.stringify(data));
             renderAll();
             updateSyncUI('synced');
@@ -279,6 +295,7 @@
               }
             });
             if (updated) {
+              sanitizeData();
               localStorage.setItem(LS_KEY, JSON.stringify(data));
               renderAll();
               updateSyncUI('synced');
@@ -299,6 +316,7 @@
                   }
                 }
               }
+              sanitizeData();
               localStorage.setItem(LS_KEY, JSON.stringify(data));
               renderAll();
               updateSyncUI('synced');
@@ -390,6 +408,20 @@
     applySearch();
   }
 
+  function filterDrStatus(status) {
+    drFilter = status;
+    updateDrFilterTabsUI();
+    renderTable('dr');
+    applySearch();
+  }
+
+  function updateDrFilterTabsUI() {
+    document.querySelectorAll('#dr-filter-tabs .filter-tab-btn').forEach(btn => {
+      const f = btn.dataset.filter;
+      btn.classList.toggle('active', f === drFilter);
+    });
+  }
+
   function renderTable(tableId) {
     const tbody = document.getElementById(`tbody-${tableId}`);
     const items = getSorted(tableId);
@@ -397,19 +429,70 @@
     const totalEl = document.getElementById(`total-${tableId}`);
     const empty = document.getElementById(`empty-${tableId}`);
 
-    badge.textContent = `${items.length} transaction${items.length !== 1 ? 's' : ''}`;
+    const allItems = data[tableId] || [];
+    badge.textContent = `${allItems.length} transaction${allItems.length !== 1 ? 's' : ''}`;
     
     const summedTotal = totalOf(tableId);
     const nonSummedTotal = nonSummedTotalOf(tableId);
-    if (nonSummedTotal > 0) {
-      totalEl.innerHTML = `${fmt(summedTotal)} <span class="footer-excluded-note" title="Amount excluded from total spent">(${fmt(nonSummedTotal)} excluded)</span>`;
+
+    // Dr. Ahmed Gomaa specific KPI and Filter calculations
+    if (tableId === 'dr') {
+      const pendingItems = allItems.filter(t => getRowStatus('dr', t) === 'pending');
+      const pendingTotal = pendingItems.reduce((s, t) => s + Number(t.price || 0), 0);
+      const pendingCount = pendingItems.length;
+
+      const returnedItems = allItems.filter(t => getRowStatus('dr', t) === 'returned_uec');
+      const returnedTotal = returnedItems.reduce((s, t) => s + Number(t.price || 0), 0);
+      const returnedCount = returnedItems.length;
+
+      // Update KPI Chips
+      const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      setVal('dr-stat-pending', fmt(pendingTotal));
+      setVal('dr-count-pending', `${pendingCount} item${pendingCount !== 1 ? 's' : ''}`);
+      setVal('dr-stat-returned', fmt(returnedTotal));
+      setVal('dr-count-returned', `${returnedCount} item${returnedCount !== 1 ? 's' : ''}`);
+      setVal('dr-stat-total', fmt(summedTotal));
+      setVal('dr-count-total', `${allItems.length} total entries`);
+
+      // Update Filter Tab Badges
+      setVal('tab-badge-all', allItems.length);
+      setVal('tab-badge-pending', pendingCount);
+      setVal('tab-badge-returned', returnedCount);
+
+      // Enhanced Footer for Dr. Ahmed with Pending breakdown
+      totalEl.innerHTML = `
+        <div class="footer-cluster-dr">
+          <div class="footer-primary-total">
+            <span class="label">Total Dr. Ahmed Gomaa:</span>
+            <span class="total-val">${fmt(summedTotal)}</span>
+          </div>
+          <div class="footer-sub-breakdown">
+            <span class="footer-badge pill-pending" title="Money pending settlement/reimbursement for Dr. Ahmed">
+              ⏳ Pending: <strong>${fmt(pendingTotal)}</strong> (${pendingCount})
+            </span>
+            <span class="footer-badge pill-returned" title="Settled expenses returned from UEC">
+              🔄 Returned: <strong>${fmt(returnedTotal)}</strong> (${returnedCount})
+            </span>
+          </div>
+        </div>
+      `;
     } else {
-      totalEl.textContent = fmt(summedTotal);
+      if (nonSummedTotal > 0) {
+        totalEl.innerHTML = `${fmt(summedTotal)} <span class="footer-excluded-note" title="Amount excluded from total spent">(${fmt(nonSummedTotal)} excluded)</span>`;
+      } else {
+        totalEl.textContent = fmt(summedTotal);
+      }
     }
 
     if (items.length === 0) {
       tbody.innerHTML = '';
       empty.style.display = 'block';
+      const emptyP = empty.querySelector('p');
+      if (emptyP) {
+        emptyP.innerHTML = (tableId === 'dr' && drFilter !== 'all')
+          ? `No transactions found matching the <strong>${drFilter.replace('_', ' ')}</strong> filter. Switch back to <strong>All Transactions</strong> to see all rows.`
+          : `No transactions yet. Click <strong>Add Row</strong> to insert an entry.`;
+      }
       return;
     }
     empty.style.display = 'none';
@@ -457,9 +540,12 @@
   }
 
   function getSorted(tableId) {
-    const items = data[tableId].map((t, i) => ({ ...t, _idx: i }));
+    let items = (data[tableId] || []).map((t, i) => ({ ...t, _idx: i }));
+    if (tableId === 'dr' && drFilter !== 'all') {
+      items = items.filter(t => getRowStatus('dr', t) === drFilter);
+    }
     const s = sortState[tableId];
-    if (s.key) {
+    if (s && s.key) {
       items.sort((a, b) => {
         let va = a[s.key], vb = b[s.key];
         if (s.key === 'price') { va = Number(va); vb = Number(vb); return (va - vb) * s.dir; }
@@ -476,6 +562,10 @@
     const accT = totalOf('acc');
     const spent = labT + uecT + drT + accT;
     const remaining = TOTAL_RECEIVED - spent;
+
+    const allDr = data['dr'] || [];
+    const drPendingTotal = allDr.filter(t => getRowStatus('dr', t) === 'pending').reduce((s, t) => s + Number(t.price || 0), 0);
+    const drPendingCount = allDr.filter(t => getRowStatus('dr', t) === 'pending').length;
 
     const pct = TOTAL_RECEIVED > 0 ? (spent / TOTAL_RECEIVED) * 100 : 0;
     const labPct = TOTAL_RECEIVED > 0 ? (labT / TOTAL_RECEIVED) * 100 : 0;
@@ -498,7 +588,13 @@
     const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     setTxt('hint-lab', labPct.toFixed(1) + '% of budget');
     setTxt('hint-uec', uecPct.toFixed(1) + '% of budget');
-    setTxt('hint-dr', drPct.toFixed(1) + '% of budget');
+    
+    // Dr. Ahmed Hint with pending note
+    const hintDr = document.getElementById('hint-dr');
+    if (hintDr) {
+      hintDr.innerHTML = `${drPct.toFixed(1)}% of budget${drPendingTotal > 0 ? ` &bull; <strong style="color:#d97706;">⏳ ${fmt(drPendingTotal)} pending</strong>` : ''}`;
+    }
+
     setTxt('hint-acc', accPct.toFixed(1) + '% of budget');
     setTxt('hint-spent', pct.toFixed(1) + '% utilized');
     setTxt('hint-remaining', remaining >= 0 ? `${remPct.toFixed(1)}% available` : 'Deficit!');
@@ -525,6 +621,15 @@
     setTxt('tbl-share-uec', uecPct.toFixed(1) + '%');
     setTxt('tbl-sum-dr', fmt(drT));
     setTxt('tbl-share-dr', drPct.toFixed(1) + '%');
+
+    // Dr. Ahmed pending pill in breakdown table
+    const tblPendingDr = document.getElementById('tbl-pending-dr');
+    if (tblPendingDr) {
+      tblPendingDr.innerHTML = drPendingTotal > 0
+        ? `<span class="sheet-pill pill-amber" title="${drPendingCount} pending transactions" style="font-size:0.72rem; margin-left:8px; padding:2px 8px;">⏳ ${fmt(drPendingTotal)} Pending</span>`
+        : '';
+    }
+
     setTxt('tbl-sum-acc', fmt(accT));
     setTxt('tbl-share-acc', accPct.toFixed(1) + '%');
     setTxt('tbl-sum-spent', fmt(spent));
@@ -776,9 +881,13 @@
     });
     const labT = totalOf('lab'), uecT = totalOf('uec'), drT = totalOf('dr'), accT = totalOf('acc');
     const spent = labT + uecT + drT + accT;
+    const drPendingCSV = (data['dr'] || []).filter(t => getRowStatus('dr', t) === 'pending').reduce((s, t) => s + Number(t.price || 0), 0);
     csv += `\n"Total Prototyping Lab Financials","","${labT}"\n`;
     csv += `"Total UEC Financials","","${uecT}"\n`;
     csv += `"Total Dr. Ahmed Gomaa Financials","","${drT}"\n`;
+    if (drPendingCSV > 0) {
+      csv += `"  └ Pending Dr. Ahmed Money","","${drPendingCSV}"\n`;
+    }
     csv += `"Total Acceleration Program Financials","","${accT}"\n`;
     csv += `"Total Spent","","${spent}"\n`;
     csv += `"Total Received","","${TOTAL_RECEIVED}"\n`;
@@ -797,6 +906,7 @@
     const labT = totalOf('lab'), uecT = totalOf('uec'), drT = totalOf('dr'), accT = totalOf('acc');
     const spent = labT + uecT + drT + accT;
     const remaining = TOTAL_RECEIVED - spent;
+    const drPendingExp = (data['dr'] || []).filter(t => getRowStatus('dr', t) === 'pending').reduce((s, t) => s + Number(t.price || 0), 0);
     const now = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
     const sectionColors = {
@@ -886,7 +996,14 @@
           html += '<tr><td class="nc">' + (i + 1) + '</td><td>' + escHtml(t.item) + '</td><td class="pc">' + priceDisplay + '</td><td class="sc"><span class="badge-' + (isSummed ? 'summed' : 'excluded') + '">' + meta.icon + ' ' + meta.label + '</span></td></tr>';
         });
         html += '</tbody></table>';
-        html += '<div class="tb" style="border-top-color:' + co.hdr + '; background:' + co.accent + '"><span class="tl">Total ' + TABLE_LABELS[id] + ':</span><span class="tv" style="color:' + co.hdr + '">' + fmt(total) + '</span></div>';
+        
+        if (id === 'dr' && drPendingExp > 0) {
+          html += '<div class="tb" style="border-top-color:' + co.hdr + '; background:' + co.accent + '; display:flex; justify-content:space-between; align-items:center;">';
+          html += '<span style="font-size:9pt; color:#b45309; font-weight:700;">⏳ Pending Money: ' + fmt(drPendingExp) + '</span>';
+          html += '<span><span class="tl">Total ' + TABLE_LABELS[id] + ':</span><span class="tv" style="color:' + co.hdr + '">' + fmt(total) + '</span></span></div>';
+        } else {
+          html += '<div class="tb" style="border-top-color:' + co.hdr + '; background:' + co.accent + '"><span class="tl">Total ' + TABLE_LABELS[id] + ':</span><span class="tv" style="color:' + co.hdr + '">' + fmt(total) + '</span></div>';
+        }
       }
       html += '</div>\n';
     });
@@ -898,7 +1015,7 @@
     html += '<tr class="dv"><td colspan="3"></td></tr>';
     html += '<tr><td class="si">🏗️</td><td class="sl">Prototyping Lab Financials</td><td class="sv" style="color:#1a56db">' + fmt(labT) + '</td></tr>';
     html += '<tr><td class="si">🏛️</td><td class="sl">UEC Financials</td><td class="sv" style="color:#7c3aed">' + fmt(uecT) + '</td></tr>';
-    html += '<tr><td class="si">👨‍🏫</td><td class="sl">Dr. Ahmed Gomaa Financials</td><td class="sv" style="color:#0891b2">' + fmt(drT) + '</td></tr>';
+    html += '<tr><td class="si">👨‍🏫</td><td class="sl">Dr. Ahmed Gomaa Financials' + (drPendingExp > 0 ? ' <small style="color:#b45309; font-weight:700;">(incl. ' + fmt(drPendingExp) + ' pending)</small>' : '') + '</td><td class="sv" style="color:#0891b2">' + fmt(drT) + '</td></tr>';
     html += '<tr><td class="si">🚀</td><td class="sl">Acceleration Program Financials</td><td class="sv" style="color:#d97706">' + fmt(accT) + '</td></tr>';
     html += '<tr class="dv"><td colspan="3"></td></tr>';
     html += '<tr class="hl"><td class="si">📉</td><td class="sl" style="font-weight:800">Total Spent</td><td class="sv" style="color:#e37400; font-size:12pt">' + fmt(spent) + '</td></tr>';
@@ -1037,7 +1154,8 @@
     resetDefaults,
     clearAll,
     setRowStatus,
-    onModalStatusChange
+    onModalStatusChange,
+    filterDrStatus
   };
 
   // ── Boot ──

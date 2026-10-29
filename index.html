@@ -171,6 +171,54 @@
           <button class="add-btn" onclick="PLF.addTx('dr')">➕ Add Row</button>
         </div>
       </div>
+
+      <!-- ─── Dr. Ahmed Status & Pending Summary Bar ─── -->
+      <div class="dr-status-bar" id="dr-status-bar">
+        <div class="dr-stat-chip chip-pending" title="Pending Money for Dr. Ahmed (Counted in total spent)">
+          <div class="chip-icon-box">⏳</div>
+          <div class="chip-data">
+            <span class="chip-title">Pending Money</span>
+            <span class="chip-val" id="dr-stat-pending">0 EGP</span>
+          </div>
+          <span class="chip-count" id="dr-count-pending">0 items</span>
+        </div>
+
+        <div class="dr-stat-chip chip-returned" title="Returned from UEC (Deducted from budget)">
+          <div class="chip-icon-box">🔄</div>
+          <div class="chip-data">
+            <span class="chip-title">Returned from UEC</span>
+            <span class="chip-val" id="dr-stat-returned">0 EGP</span>
+          </div>
+          <span class="chip-count" id="dr-count-returned">0 items</span>
+        </div>
+
+        <div class="dr-stat-chip chip-total" title="Total Active Outflow for Dr. Ahmed Gomaa">
+          <div class="chip-icon-box">💰</div>
+          <div class="chip-data">
+            <span class="chip-title">Total Active Spent</span>
+            <span class="chip-val" id="dr-stat-total">0 EGP</span>
+          </div>
+          <span class="chip-count" id="dr-count-total">0 items</span>
+        </div>
+      </div>
+
+      <!-- ─── Dr. Ahmed Quick Filter Tabs ─── -->
+      <div class="dr-filter-tabs" id="dr-filter-tabs">
+        <span class="filter-tabs-label">Filter View:</span>
+        <button class="filter-tab-btn active" data-filter="all" onclick="PLF.filterDrStatus('all')">
+          <span>📋 All Transactions</span>
+          <span class="tab-badge" id="tab-badge-all">0</span>
+        </button>
+        <button class="filter-tab-btn tab-pending" data-filter="pending" onclick="PLF.filterDrStatus('pending')">
+          <span>⏳ Pending Money</span>
+          <span class="tab-badge badge-pending" id="tab-badge-pending">0</span>
+        </button>
+        <button class="filter-tab-btn tab-returned" data-filter="returned_uec" onclick="PLF.filterDrStatus('returned_uec')">
+          <span>🔄 Returned UEC</span>
+          <span class="tab-badge" id="tab-badge-returned">0</span>
+        </button>
+      </div>
+
       <div class="sort-controls" id="sort-dr">
         <span class="sort-label">Sort Column:</span>
         <button class="sort-btn" data-key="item" onclick="PLF.sortBy('dr','item')">Col B: Item <span class="arrow">▲</span></button>
@@ -195,9 +243,12 @@
           <p>No transactions yet. Click <strong>Add Row</strong> to insert an entry.</p>
         </div>
       </div>
-      <div class="table-footer">
+      <div class="table-footer dr-table-footer">
         <div class="footer-formula"><span class="formula-tag">=SUM(C2:C)</span></div>
-        <div class="table-total"><span class="label">Total Dr. Ahmed Gomaa:</span> <span class="total-val" id="total-dr">0 EGP</span></div>
+        <div class="table-total" id="total-dr-wrap">
+          <span class="label">Total Dr. Ahmed Gomaa:</span>
+          <span class="total-val" id="total-dr">0 EGP</span>
+        </div>
       </div>
     </section>
 
@@ -344,7 +395,7 @@
               </tr>
               <tr>
                 <td class="col-num">4</td>
-                <td>👨‍🏫 Dr. Ahmed Gomaa Financials</td>
+                <td>👨‍🏫 Dr. Ahmed Gomaa Financials <span id="tbl-pending-dr"></span></td>
                 <td class="cell-amount" id="tbl-sum-dr">0 EGP</td>
                 <td class="cell-center" id="tbl-share-dr">0.0%</td>
                 <td class="cell-center"><span class="sheet-pill pill-cyan">Supervisory</span></td>
